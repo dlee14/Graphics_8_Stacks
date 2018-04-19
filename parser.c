@@ -73,6 +73,7 @@ void parse_file ( char * filename,
   char line[255];
   clear_screen(s);
 
+  struct stack * cs = new_stack();
   color c;
   c.red = 0;
   c.green = 0;
@@ -107,8 +108,16 @@ void parse_file ( char * filename,
              xvals+1, yvals+1, zvals+1);
       add_box(polygons, xvals[0], yvals[0], zvals[0],
               xvals[1], yvals[1], zvals[1]);
+      matrix_mult(peek(cs), polygons);
+      draw_polygons(polygons, s, c);
+      polygons->lastcol = 0;
     }//end of box
-
+    else if ( strncmp(line, "push", strlen(line)) == 0) {
+      push(cs);
+    }
+    else if ( strncmp(line, "pop", strlen(line)) == 0) {
+      pop(cs);
+    }
     else if ( strncmp(line, "sphere", strlen(line)) == 0 ) {
       fgets(line, sizeof(line), f);
       //printf("SPHERE\t%s", line);
@@ -116,6 +125,9 @@ void parse_file ( char * filename,
       sscanf(line, "%lf %lf %lf %lf",
              xvals, yvals, zvals, &r);
       add_sphere( polygons, xvals[0], yvals[0], zvals[0], r, step_3d);
+      matrix_mult(peek(cs), polygons);
+      draw_polygons(polygons, s, c);
+      polygons->lastcol = 0;
     }//end of sphere
 
     else if ( strncmp(line, "torus", strlen(line)) == 0 ) {
@@ -125,6 +137,9 @@ void parse_file ( char * filename,
       sscanf(line, "%lf %lf %lf %lf %lf",
              xvals, yvals, zvals, &r, &r1);
       add_torus(polygons, xvals[0], yvals[0], zvals[0], r, r1, step_3d);
+      matrix_mult(peek(cs), polygons);
+      draw_polygons(polygons, s, c);
+      polygons->lastcol = 0;
     }//end of torus
 
     else if ( strncmp(line, "circle", strlen(line)) == 0 ) {
@@ -134,6 +149,9 @@ void parse_file ( char * filename,
       sscanf(line, "%lf %lf %lf %lf",
              xvals, yvals, zvals, &r);
       add_circle( edges, xvals[0], yvals[0], zvals[0], r, step);
+      matrix_mult(peek(cs), edges);
+      draw_lines(edges, s, c);
+      edges->lastcol = 0;
     }//end of circle
 
     else if ( strncmp(line, "hermite", strlen(line)) == 0 ||
@@ -157,6 +175,9 @@ void parse_file ( char * filename,
       //printf("%d\n", type);
       add_curve( edges, xvals[0], yvals[0], xvals[1], yvals[1],
                  xvals[2], yvals[2], xvals[3], yvals[3], step, type);
+      matrix_mult(peek(cs), edges);
+      draw_lines(edges, s, c);
+      edges->lastcol = 0;
     }//end of curve
 
     else if ( strncmp(line, "line", strlen(line)) == 0 ) {
@@ -171,6 +192,9 @@ void parse_file ( char * filename,
         xvals[1], yvals[1], zvals[1]) */
       add_edge(edges, xvals[0], yvals[0], zvals[0],
                xvals[1], yvals[1], zvals[1]);
+      matrix_mult(peek(cs), edges);
+      draw_lines(edges, s, c);
+      edges->lastcol = 0;
     }//end line
 
     else if ( strncmp(line, "scale", strlen(line)) == 0 ) {
@@ -181,7 +205,8 @@ void parse_file ( char * filename,
       /* printf("%lf %lf %lf\n", */
       /* 	xvals[0], yvals[0], zvals[0]); */
       tmp = make_scale( xvals[0], yvals[0], zvals[0]);
-      matrix_mult(tmp, transform);
+      matrix_mult(peek(cs), tmp);
+      copy_matrix(tmp, peek(cs));
     }//end scale
 
     else if ( strncmp(line, "move", strlen(line)) == 0 ) {
@@ -192,7 +217,8 @@ void parse_file ( char * filename,
       /* printf("%lf %lf %lf\n", */
       /* 	xvals[0], yvals[0], zvals[0]); */
       tmp = make_translate( xvals[0], yvals[0], zvals[0]);
-      matrix_mult(tmp, transform);
+      matrix_mult(peek(cs), tmp);
+      copy_matrix(tmp, peek(cs));
     }//end translate
 
     else if ( strncmp(line, "rotate", strlen(line)) == 0 ) {
@@ -210,31 +236,31 @@ void parse_file ( char * filename,
       else
         tmp = make_rotZ( theta );
 
-      matrix_mult(tmp, transform);
+      matrix_mult(peek(cs), tmp);
+      copy_matrix(tmp, peek(cs));
     }//end rotate
 
+    /***
     else if ( strncmp(line, "clear", strlen(line)) == 0 ) {
       //printf("clear\t%s", line);
       edges->lastcol = 0;
       polygons->lastcol = 0;
     }//end clear
-
     else if ( strncmp(line, "ident", strlen(line)) == 0 ) {
       //printf("IDENT\t%s", line);
       ident(transform);
     }//end ident
-
     else if ( strncmp(line, "apply", strlen(line)) == 0 ) {
       //printf("APPLY\t%s", line);
       matrix_mult(transform, edges);
       matrix_mult(transform, polygons);
     }//end apply
-
+    ***/
     else if ( strncmp(line, "display", strlen(line)) == 0 ) {
       //printf("DISPLAY\t%s", line);
-      clear_screen(s);
-      draw_lines(edges, s, c);
-      draw_polygons(polygons, s, c);
+      //clear_screen(s);
+      //draw_lines(edges, s, c);
+      //draw_polygons(polygons, s, c);
       display( s );
     }//end display
 
@@ -242,10 +268,10 @@ void parse_file ( char * filename,
       fgets(line, sizeof(line), f);
       *strchr(line, '\n') = 0;
       //printf("SAVE\t%s\n", line);
-      clear_screen(s);
-      draw_lines(edges, s, c);
-      draw_polygons(polygons, s, c);
-      save_extension(s, line);
+      //clear_screen(s);
+      //draw_lines(edges, s, c);
+      //draw_polygons(polygons, s, c);
+      //save_extension(s, line);
     }//end save
   }
 }
